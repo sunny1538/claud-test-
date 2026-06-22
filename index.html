@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Spice Garden — Order Online</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#FFF8F5;color:#1a1a1a;min-height:100vh}
+
+/* TOP NAV */
+.nav{background:#fff;padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.07)}
+.nav-logo{font-size:20px;font-weight:800;color:#E8390E;flex:1;letter-spacing:-0.5px}
+.nav-logo span{color:#1a1a1a}
+.cart-fab{background:#E8390E;border:none;color:#fff;padding:9px 16px;border-radius:24px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 12px rgba(232,57,14,0.35);transition:transform 0.15s}
+.cart-fab:hover{transform:scale(1.04)}
+.cart-badge{background:#fff;color:#E8390E;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#E8390E 0%,#FF8A00 100%);padding:32px 20px 28px;color:#fff;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:rgba(255,255,255,0.07);border-radius:50%}
+.hero::after{content:'';position:absolute;right:40px;bottom:-60px;width:140px;height:140px;background:rgba(255,255,255,0.05);border-radius:50%}
+.hero-tag{font-size:12px;font-weight:600;background:rgba(255,255,255,0.2);border-radius:20px;padding:4px 12px;display:inline-block;margin-bottom:10px;letter-spacing:0.05em}
+.hero h1{font-size:26px;font-weight:800;margin-bottom:6px;line-height:1.2}
+.hero p{font-size:14px;opacity:0.85;margin-bottom:16px}
+.hero-pills{display:flex;gap:8px;flex-wrap:wrap}
+.hero-pill{font-size:12px;background:rgba(255,255,255,0.18);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:4px}
+
+/* CATEGORIES */
+.cat-scroll{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;background:#fff;border-bottom:1px solid #f0f0f0}
+.cat-scroll::-webkit-scrollbar{display:none}
+.cat-btn{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid #e8e8e8;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#666;transition:all 0.15s;white-space:nowrap}
+.cat-btn.active{background:#E8390E;border-color:#E8390E;color:#fff}
+
+/* MENU */
+.menu-wrap{padding:14px 16px}
+.section-label{font-size:13px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin:8px 4px 10px}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:transform 0.15s,box-shadow 0.15s;position:relative}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,0.1)}
+.card-img{height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;background:linear-gradient(135deg,#FFF0EB,#FFE4D6)}
+.veg-dot{position:absolute;top:8px;left:8px;width:16px;height:16px;border:2px solid;border-radius:3px;display:flex;align-items:center;justify-content:center}
+.veg-dot.veg{border-color:#1D9E75;background:#fff}
+.veg-dot.veg::after{content:'';width:7px;height:7px;background:#1D9E75;border-radius:50%}
+.veg-dot.nonveg{border-color:#E8390E;background:#fff}
+.veg-dot.nonveg::after{content:'▲';font-size:7px;color:#E8390E;line-height:1}
+.bestseller{position:absolute;top:8px;right:8px;background:#FF8A00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em}
+.card-body{padding:10px 12px 12px}
+.card-name{font-size:13px;font-weight:700;margin-bottom:3px;line-height:1.3}
+.card-desc{font-size:11px;color:#999;margin-bottom:8px;line-height:1.4}
+.card-foot{display:flex;align-items:center;justify-content:space-between}
+.card-price{font-size:15px;font-weight:800;color:#E8390E}
+.add-btn{width:30px;height:30px;border-radius:50%;background:#E8390E;border:none;color:#fff;font-size:18px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.15s}
+.add-btn:hover{transform:scale(1.1)}
+.qty-ctrl{display:flex;align-items:center;gap:6px}
+.qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #E8390E;background:#fff;color:#E8390E;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-num{font-size:13px;font-weight:700;min-width:14px;text-align:center}
+
+/* FLOATING CART BAR */
+.cart-bar{position:fixed;bottom:0;left:0;right:0;z-index:99;padding:12px 16px;background:transparent;pointer-events:none;transform:translateY(100px);transition:transform 0.3s}
+.cart-bar.show{transform:translateY(0)}
+.cart-bar-inner{background:#E8390E;border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:10px;pointer-events:all;box-shadow:0 8px 24px rgba(232,57,14,0.4)}
+.cart-bar-info{flex:1;color:#fff}
+.cart-bar-count{font-size:12px;opacity:0.85}
+.cart-bar-total{font-size:16px;font-weight:800}
+.cart-bar-btn{background:#fff;color:#E8390E;border:none;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer}
+
+/* OVERLAY + DRAWER */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+.drawer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:201;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.35s cubic-bezier(.32,.72,0,1)}
+.drawer.show{transform:translateY(0)}
+.drawer-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:14px auto 6px}
+.drawer-head{padding:10px 20px 16px;border-bottom:1px solid #f0f0f0}
+.drawer-title{font-size:18px;font-weight:800}
+.drawer-sub{font-size:13px;color:#888;margin-top:2px}
+.cart-item{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid #f7f7f7}
+.ci-emoji{font-size:28px;min-width:36px;text-align:center}
+.ci-info{flex:1}
+.ci-name{font-size:14px;font-weight:600}
+.ci-price{font-size:13px;color:#888;margin-top:2px}
+.ci-price span{color:#E8390E;font-weight:700}
+.cart-empty{padding:40px 20px;text-align:center;color:#bbb}
+.cart-summary{padding:16px 20px;background:#FFF8F5;border-top:1px solid #f0f0f0}
+.summary-row{display:flex;justify-content:space-between;font-size:13px;color:#666;margin-bottom:6px}
+.summary-total{display:flex;justify-content:space-between;font-size:16px;font-weight:800;margin-top:10px;padding-top:10px;border-top:1px solid #e8e8e8}
+.checkout-btn{width:100%;padding:15px;background:#E8390E;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px;box-shadow:0 4px 12px rgba(232,57,14,0.3)}
+.checkout-btn:hover{background:#c72d08}
+
+/* CHECKOUT */
+.checkout-wrap{display:none;padding:0 0 80px}
+.checkout-wrap.active{display:block}
+.back-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.back-bar span{font-size:14px;font-weight:600}
+.form-card{margin:14px 16px;background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.form-card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.inp-row{margin-bottom:13px}
+.inp-row label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px}
+.inp-row input,.inp-row textarea{width:100%;padding:12px 14px;border:1.5px solid #e8e8e8;border-radius:12px;font-size:14px;outline:none;background:#FAFAFA;transition:border 0.2s,background 0.2s}
+.inp-row input:focus,.inp-row textarea:focus{border-color:#E8390E;background:#fff}
+.gps-btn{width:100%;padding:13px;border:2px dashed #e8e8e8;border-radius:12px;background:#FAFAFA;font-size:14px;font-weight:600;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s}
+.gps-btn.got{border-color:#1D9E75;background:#F0FBF6;color:#085041;border-style:solid}
+.gps-msg{font-size:12px;color:#888;text-align:center;margin-top:6px}
+.order-summary-card{margin:0 16px 14px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.os-head{padding:14px 18px;background:#FFF0EB;font-size:14px;font-weight:700;border-bottom:1px solid #FFD9CC}
+.os-item{display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid #f7f7f7;font-size:13px}
+.os-item:last-child{border-bottom:none}
+.os-total{display:flex;justify-content:space-between;padding:13px 18px;font-size:15px;font-weight:800;background:#FFF8F5}
+.place-btn{margin:0 16px;width:calc(100% - 32px);padding:16px;background:#E8390E;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(232,57,14,0.35);transition:opacity 0.2s}
+.place-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* SUCCESS */
+.success-wrap{display:none;padding:40px 20px;text-align:center;min-height:70vh;flex-direction:column;align-items:center;justify-content:center}
+.success-wrap.active{display:flex}
+.success-anim{font-size:72px;margin-bottom:10px;animation:pop 0.5s cubic-bezier(.36,.07,.19,.97)}
+@keyframes pop{0%{transform:scale(0.5)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
+.success-title{font-size:24px;font-weight:800;margin-bottom:8px}
+.success-sub{font-size:15px;color:#666;margin-bottom:24px;line-height:1.5}
+.order-badge{background:#FFF0EB;border:1.5px solid #FFD9CC;border-radius:14px;padding:14px 24px;margin-bottom:28px}
+.order-badge-label{font-size:12px;color:#888;margin-bottom:4px}
+.order-badge-id{font-size:22px;font-weight:800;color:#E8390E}
+.steps{text-align:left;background:#fff;border-radius:16px;padding:18px;width:100%;max-width:340px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.step{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f5f5f5}
+.step:last-child{border:none}
+.step-icon{width:34px;height:34px;border-radius:50%;background:#FFF0EB;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.step-text{font-size:13px;font-weight:600}
+.step-sub{font-size:12px;color:#999}
+.reorder-btn{padding:14px 32px;background:#E8390E;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-logo">Spice<span>Garden</span> 🍛</div>
+  <button class="cart-fab" onclick="openCart()">
+    🛒 Cart <span class="cart-badge" id="cart-count">0</span>
+  </button>
+</div>
+
+<!-- MAIN MENU PAGE -->
+<div id="menu-page">
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-tag">🔥 Fresh & Hot Today</div>
+    <h1>Homestyle food,<br>delivered fast 🚀</h1>
+    <p>Order now · Ready in 25–35 mins</p>
+    <div class="hero-pills">
+      <div class="hero-pill">⭐ 4.8 rated</div>
+      <div class="hero-pill">🕐 25–35 min</div>
+      <div class="hero-pill">🛵 Free delivery</div>
+    </div>
+  </div>
+
+  <!-- Categories -->
+  <div class="cat-scroll" id="cat-scroll">
+    <button class="cat-btn active" onclick="filterCat('all',this)">🍽 All</button>
+    <button class="cat-btn" onclick="filterCat('meals',this)">🍛 Meals</button>
+    <button class="cat-btn" onclick="filterCat('rice',this)">🍚 Rice & Biryani</button>
+    <button class="cat-btn" onclick="filterCat('snacks',this)">🍟 Snacks</button>
+    <button class="cat-btn" onclick="filterCat('breads',this)">🫓 Breads</button>
+    <button class="cat-btn" onclick="filterCat('drinks',this)">🥤 Drinks</button>
+  </div>
+
+  <!-- Menu -->
+  <div class="menu-wrap" id="menu-wrap"></div>
+</div>
+
+<!-- CHECKOUT PAGE -->
+<div class="checkout-wrap" id="checkout-page">
+  <div class="back-bar" onclick="showMenu()">
+    <span style="font-size:20px">←</span>
+    <span>Back to menu</span>
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-title">👤 Your details</div>
+    <div class="inp-row"><label>Full name *</label><input type="text" id="c-name" placeholder="e.g. Riya Sharma"/></div>
+    <div class="inp-row"><label>Phone number *</label><input type="tel" id="c-phone" placeholder="e.g. 9876543210"/></div>
+    <div class="inp-row"><label>Email (optional)</label><input type="email" id="c-email" placeholder="riya@gmail.com"/></div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-title">📍 Delivery location</div>
+    <div class="inp-row"><label>Full address *</label><input type="text" id="c-address" placeholder="House no, street, area, city"/></div>
+    <button class="gps-btn" id="gps-btn" onclick="getGPS()">📡 Share exact GPS location</button>
+    <div class="gps-msg" id="gps-msg">Sharing GPS helps rider find you faster</div>
+    <div class="inp-row" style="margin-top:12px"><label>Special instructions</label><textarea id="c-notes" rows="2" placeholder="e.g. No onions, ring bell twice..."></textarea></div>
+  </div>
+
+  <div class="order-summary-card">
+    <div class="os-head">🧾 Order summary</div>
+    <div id="os-items"></div>
+    <div class="os-total"><span>Total to pay</span><span id="os-total" style="color:#E8390E">₹0</span></div>
+  </div>
+
+  <button class="place-btn" id="place-btn" onclick="placeOrder()">🎉 Place Order</button>
+</div>
+
+<!-- SUCCESS PAGE -->
+<div class="success-wrap" id="success-page">
+  <div class="success-anim">🎉</div>
+  <div class="success-title">Order placed!</div>
+  <div class="success-sub">Your food is being prepared with love.<br>We'll call you when it's on the way!</div>
+  <div class="order-badge">
+    <div class="order-badge-label">Your order ID</div>
+    <div class="order-badge-id" id="success-oid">#—</div>
+  </div>
+  <div class="steps">
+    <div class="step"><div class="step-icon">✅</div><div><div class="step-text">Order received</div><div class="step-sub">Kitchen is preparing your food</div></div></div>
+    <div class="step"><div class="step-icon">🍳</div><div><div class="step-text">Being cooked</div><div class="step-sub">Fresh & hot, just for you</div></div></div>
+    <div class="step"><div class="step-icon">🛵</div><div><div class="step-text">Out for delivery</div><div class="step-sub">Rider on the way to your location</div></div></div>
+    <div class="step"><div class="step-icon">🏠</div><div><div class="step-text">Delivered!</div><div class="step-sub">Enjoy your meal</div></div></div>
+  </div>
+  <button class="reorder-btn" onclick="resetApp()">Order more food 🍛</button>
+</div>
+
+<!-- CART DRAWER -->
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-head">
+    <div class="drawer-title">Your cart 🛒</div>
+    <div class="drawer-sub" id="drawer-sub">0 items</div>
+  </div>
+  <div id="cart-items"></div>
+  <div class="cart-summary" id="cart-summary" style="display:none">
+    <div class="summary-row"><span>Subtotal</span><span id="sum-sub">₹0</span></div>
+    <div class="summary-row"><span>Delivery</span><span style="color:#1D9E75">FREE</span></div>
+    <div class="summary-total"><span>Total</span><span id="sum-total">₹0</span></div>
+    <button class="checkout-btn" onclick="goCheckout()">Proceed to checkout →</button>
+  </div>
+</div>
+
+<!-- FLOATING CART BAR -->
+<div class="cart-bar" id="cart-bar">
+  <div class="cart-bar-inner">
+    <div style="font-size:22px">🛒</div>
+    <div class="cart-bar-info">
+      <div class="cart-bar-count" id="cbar-count">0 items</div>
+      <div class="cart-bar-total" id="cbar-total">₹0</div>
+    </div>
+    <button class="cart-bar-btn" onclick="openCart()">View cart →</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://cwhtmomweslynqyjildp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aHRtb213ZXNseW5xeWppbGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMjA1MTgsImV4cCI6MjA5NzY5NjUxOH0.W6WtVBsNspCjZUIcj55t7DoxhtxVljftT4oZqjXmiu8';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const MENU = [
+  // MEALS
+  { id:1, cat:'meals', name:'Butter Chicken', desc:'Tender chicken in rich creamy tomato gravy', price:240, emoji:'🍛', veg:false, best:true },
+  { id:2, cat:'meals', name:'Paneer Butter Masala', desc:'Soft paneer in silky tomato-cashew gravy', price:210, emoji:'🧆', veg:true, best:true },
+  { id:3, cat:'meals', name:'Dal Tadka', desc:'Yellow lentils tempered with ghee & spices', price:150, emoji:'🍲', veg:true, best:false },
+  { id:4, cat:'meals', name:'Chicken Kadai', desc:'Spicy wok-tossed chicken with peppers', price:260, emoji:'🥘', veg:false, best:false },
+  { id:5, cat:'meals', name:'Palak Paneer', desc:'Fresh cottage cheese in spinach gravy', price:200, emoji:'🥬', veg:true, best:false },
+  { id:6, cat:'meals', name:'Mutton Rogan Josh', desc:'Slow-cooked mutton in Kashmiri spices', price:320, emoji:'🍖', veg:false, best:false },
+  // RICE & BIRYANI
+  { id:7, cat:'rice', name:'Chicken Biryani', desc:'Fragrant basmati with spiced chicken', price:280, emoji:'🍚', veg:false, best:true },
+  { id:8, cat:'rice', name:'Veg Biryani', desc:'Aromatic rice with garden vegetables', price:200, emoji:'🌾', veg:true, best:false },
+  { id:9, cat:'rice', name:'Egg Fried Rice', desc:'Wok-tossed rice with eggs & veggies', price:160, emoji:'🍳', veg:false, best:false },
+  { id:10, cat:'rice', name:'Jeera Rice', desc:'Basmati rice with cumin tempering', price:120, emoji:'🌿', veg:true, best:false },
+  // SNACKS
+  { id:11, cat:'snacks', name:'Samosa (2 pcs)', desc:'Crispy pastry with spiced potato filling', price:60, emoji:'🥟', veg:true, best:true },
+  { id:12, cat:'snacks', name:'Chicken Tikka (6 pcs)', desc:'Grilled marinated chicken pieces', price:220, emoji:'🍗', veg:false, best:true },
+  { id:13, cat:'snacks', name:'Masala Fries', desc:'Crispy fries tossed in chaat masala', price:90, emoji:'🍟', veg:true, best:false },
+  { id:14, cat:'snacks', name:'Veg Spring Rolls (4 pcs)', desc:'Crunchy rolls with vegetable filling', price:110, emoji:'🌯', veg:true, best:false },
+  { id:15, cat:'snacks', name:'Paneer Tikka (6 pcs)', desc:'Grilled spiced cottage cheese skewers', price:190, emoji:'🧀', veg:true, best:false },
+  // BREADS
+  { id:16, cat:'breads', name:'Butter Naan', desc:'Soft leavened bread brushed with butter', price:40, emoji:'🫓', veg:true, best:true },
+  { id:17, cat:'breads', name:'Garlic Naan', desc:'Naan topped with garlic & coriander', price:50, emoji:'🧄', veg:true, best:false },
+  { id:18, cat:'breads', name:'Tandoori Roti', desc:'Whole wheat bread from clay oven', price:30, emoji:'🥖', veg:true, best:false },
+  { id:19, cat:'breads', name:'Paratha (2 pcs)', desc:'Layered whole wheat flatbread with butter', price:70, emoji:'🥞', veg:true, best:false },
+  // DRINKS
+  { id:20, cat:'drinks', name:'Mango Lassi', desc:'Fresh mango blended with thick yoghurt', price:80, emoji:'🥭', veg:true, best:true },
+  { id:21, cat:'drinks', name:'Masala Chai', desc:'Spiced tea brewed with ginger & cardamom', price:40, emoji:'☕', veg:true, best:false },
+  { id:22, cat:'drinks', name:'Fresh Lime Soda', desc:'Chilled lime soda, sweet or salted', price:60, emoji:'🍋', veg:true, best:false },
+  { id:23, cat:'drinks', name:'Cold Coffee', desc:'Chilled coffee blended with ice cream', price:90, emoji:'🧋', veg:true, best:false },
+];
+
+let cart = {};
+let gps = null;
+let currentCat = 'all';
+
+// ---- RENDER MENU ----
+function renderMenu() {
+  const wrap = document.getElementById('menu-wrap');
+  const filtered = currentCat === 'all' ? MENU : MENU.filter(m => m.cat === currentCat);
+  const cats = currentCat === 'all'
+    ? ['meals','rice','snacks','breads','drinks']
+    : [currentCat];
+  const catLabels = { meals:'🍛 Main Course', rice:'🍚 Rice & Biryani', snacks:'🍟 Snacks & Starters', breads:'🫓 Breads', drinks:'🥤 Drinks' };
+
+  let html = '';
+  cats.forEach(cat => {
+    const items = filtered.filter(m => m.cat === cat);
+    if (!items.length) return;
+    html += `<div class="section-label">${catLabels[cat]}</div><div class="menu-grid">`;
+    items.forEach(item => {
+      const qty = cart[item.id] || 0;
+      html += `<div class="card">
+        ${item.best ? '<div class="bestseller">Bestseller</div>' : ''}
+        <div class="veg-dot ${item.veg?'veg':'nonveg'}"></div>
+        <div class="card-img">${item.emoji}</div>
+        <div class="card-body">
+          <div class="card-name">${item.name}</div>
+          <div class="card-desc">${item.desc}</div>
+          <div class="card-foot">
+            <div class="card-price">₹${item.price}</div>
+            ${qty === 0
+              ? `<button class="add-btn" onclick="addToCart(${item.id})">+</button>`
+              : `<div class="qty-ctrl">
+                  <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+                  <span class="qty-num">${qty}</span>
+                  <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+                </div>`
+            }
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+function filterCat(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMenu();
+}
+
+function addToCart(id) { cart[id] = 1; updateCart(); renderMenu(); }
+function changeQty(id, d) {
+  cart[id] = Math.max(0, (cart[id] || 0) + d);
+  if (!cart[id]) delete cart[id];
+  updateCart(); renderMenu();
+}
+
+function getCartItems() {
+  return Object.entries(cart).map(([id, qty]) => {
+    const item = MENU.find(m => m.id == id);
+    return { ...item, qty, subtotal: item.price * qty };
+  });
+}
+function getTotal() { return getCartItems().reduce((a, b) => a + b.subtotal, 0); }
+function getTotalQty() { return Object.values(cart).reduce((a, b) => a + b, 0); }
+
+function updateCart() {
+  const qty = getTotalQty();
+  const total = getTotal();
+  document.getElementById('cart-count').textContent = qty;
+  document.getElementById('cbar-count').textContent = qty + ' item' + (qty !== 1 ? 's' : '');
+  document.getElementById('cbar-total').textContent = '₹' + total;
+  const bar = document.getElementById('cart-bar');
+  qty > 0 ? bar.classList.add('show') : bar.classList.remove('show');
+}
+
+// ---- CART DRAWER ----
+function openCart() {
+  const items = getCartItems();
+  const total = getTotal();
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('overlay');
+  document.getElementById('drawer-sub').textContent = getTotalQty() + ' items · ₹' + total;
+
+  if (!items.length) {
+    document.getElementById('cart-items').innerHTML = '<div class="cart-empty">🛒 Your cart is empty!<br><span style="font-size:13px;color:#bbb">Add some yummy items</span></div>';
+    document.getElementById('cart-summary').style.display = 'none';
+  } else {
+    document.getElementById('cart-items').innerHTML = items.map(i => `
+      <div class="cart-item">
+        <div class="ci-emoji">${i.emoji}</div>
+        <div class="ci-info">
+          <div class="ci-name">${i.name}</div>
+          <div class="ci-price">₹${i.price} × ${i.qty} = <span>₹${i.subtotal}</span></div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(${i.id},-1)">−</button>
+          <span class="qty-num">${i.qty}</span>
+          <button class="qty-btn" onclick="changeQty(${i.id},1)">+</button>
+        </div>
+      </div>`).join('');
+    document.getElementById('sum-sub').textContent = '₹' + total;
+    document.getElementById('sum-total').textContent = '₹' + total;
+    document.getElementById('cart-summary').style.display = 'block';
+  }
+  drawer.classList.add('show');
+  overlay.classList.add('show');
+}
+
+function closeCart() {
+  document.getElementById('drawer').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function goCheckout() {
+  closeCart();
+  const items = getCartItems();
+  document.getElementById('os-items').innerHTML = items.map(i =>
+    `<div class="os-item"><span>${i.emoji} ${i.name} × ${i.qty}</span><span>₹${i.subtotal}</span></div>`
+  ).join('');
+  document.getElementById('os-total').textContent = '₹' + getTotal();
+  document.getElementById('menu-page').style.display = 'none';
+  document.getElementById('checkout-page').classList.add('active');
+}
+
+function showMenu() {
+  document.getElementById('menu-page').style.display = 'block';
+  document.getElementById('checkout-page').classList.remove('active');
+}
+
+// ---- GPS ----
+function getGPS() {
+  const btn = document.getElementById('gps-btn');
+  const msg = document.getElementById('gps-msg');
+  if (!navigator.geolocation) { msg.textContent = 'GPS not available'; return; }
+  btn.textContent = '📡 Getting your location...';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    gps = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${gps.lat}&lon=${gps.lng}&format=json`);
+      const d = await r.json();
+      gps.address = d.display_name;
+      const addrEl = document.getElementById('c-address');
+      if (!addrEl.value) addrEl.value = d.display_name.split(',').slice(0, 4).join(',').trim();
+    } catch(e) {}
+    btn.innerHTML = '✅ GPS location captured!';
+    btn.classList.add('got');
+    msg.textContent = `Accuracy: ±${Math.round(gps.accuracy)}m · Your rider will navigate directly to you`;
+  }, () => {
+    btn.textContent = '📡 Share exact GPS location';
+    msg.textContent = 'Permission denied — please type your address above';
+  }, { enableHighAccuracy: true, timeout: 15000 });
+}
+
+// ---- PLACE ORDER ----
+async function placeOrder() {
+  const name = document.getElementById('c-name').value.trim();
+  const phone = document.getElementById('c-phone').value.trim();
+  const address = document.getElementById('c-address').value.trim();
+  if (!name) { alert('Please enter your name'); return; }
+  if (!phone) { alert('Please enter your phone number'); return; }
+  if (!address) { alert('Please enter your delivery address'); return; }
+  if (!getCartItems().length) { alert('Your cart is empty'); return; }
+
+  const btn = document.getElementById('place-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Placing your order...';
+
+  const { data, error } = await sb.from('orders').insert([{
+    customer_name: name,
+    customer_phone: phone,
+    customer_email: document.getElementById('c-email').value.trim() || null,
+    items: getCartItems(),
+    total_price: getTotal(),
+    notes: document.getElementById('c-notes').value.trim() || null,
+    status: 'new',
+    lat: gps?.lat || null,
+    lng: gps?.lng || null,
+    accuracy: gps?.accuracy || null,
+    full_address: gps?.address || address,
+  }]).select();
+
+  if (error) {
+    alert('Error: ' + error.message);
+    btn.disabled = false;
+    btn.textContent = '🎉 Place Order';
+    return;
+  }
+
+  document.getElementById('success-oid').textContent = '#' + data[0].order_number;
+  document.getElementById('checkout-page').classList.remove('active');
+  document.getElementById('success-page').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function resetApp() {
+  cart = {}; gps = null;
+  document.getElementById('success-page').classList.remove('active');
+  document.getElementById('menu-page').style.display = 'block';
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-phone').value = '';
+  document.getElementById('c-email').value = '';
+  document.getElementById('c-address').value = '';
+  document.getElementById('c-notes').value = '';
+  document.getElementById('gps-btn').className = 'gps-btn';
+  document.getElementById('gps-btn').textContent = '📡 Share exact GPS location';
+  document.getElementById('gps-msg').textContent = 'Sharing GPS helps rider find you faster';
+  document.getElementById('place-btn').disabled = false;
+  document.getElementById('place-btn').textContent = '🎉 Place Order';
+  updateCart();
+  renderMenu();
+  window.scrollTo(0, 0);
+}
+
+renderMenu();
+</script>
+</body>
+</html>
